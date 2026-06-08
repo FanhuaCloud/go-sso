@@ -48,6 +48,7 @@ jobs:
           mkdir -p dist/go-sso-linux-amd64
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X go-sso/internal/version.Version=${VERSION}" -o dist/go-sso-linux-amd64/go-sso-linux-amd64 .
           cp .env.example dist/go-sso-linux-amd64/.env.example
+          cp go-sso.service dist/go-sso-linux-amd64/go-sso.service
 
       - name: Build Linux arm64
         env:
@@ -56,6 +57,7 @@ jobs:
           mkdir -p dist/go-sso-linux-arm64
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X go-sso/internal/version.Version=${VERSION}" -o dist/go-sso-linux-arm64/go-sso-linux-arm64 .
           cp .env.example dist/go-sso-linux-arm64/.env.example
+          cp go-sso.service dist/go-sso-linux-arm64/go-sso.service
 
       - name: Package Linux releases
         run: |
