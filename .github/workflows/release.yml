@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  linux-amd64:
+    name: Build and publish Linux amd64 release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Check formatting
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "These Go files need gofmt:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build Linux amd64
+        run: |
+          mkdir -p dist/go-sso-linux-amd64
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/go-sso-linux-amd64/go-sso-linux-amd64 .
+          cp .env.example dist/go-sso-linux-amd64/.env.example
+
+      - name: Package Linux amd64
+        run: |
+          tar -czf dist/go-sso-linux-amd64.tar.gz -C dist/go-sso-linux-amd64 .
+          cd dist
+          sha256sum go-sso-linux-amd64.tar.gz > go-sso-linux-amd64.tar.gz.sha256
+
+      - name: Generate release notes
+        run: |
+          tag="${{ github.ref_name }}"
+          previous_tag="$(git tag --merged "$tag" --list 'v*' --sort=-creatordate | grep -vx "$tag" | head -n 1 || true)"
+
+          {
+            echo "## Changes"
+            echo
+            if [ -n "$previous_tag" ]; then
+              echo "Commits from \`$previous_tag\` to \`$tag\`:"
+              echo
+              git log --reverse --pretty=format:'- %s (%h)' "$previous_tag..$tag"
+            else
+              echo "Initial release commits:"
+              echo
+              git log --reverse --pretty=format:'- %s (%h)' "$tag"
+            fi
+            echo
+            echo
+            echo "## Assets"
+            echo
+            echo "- \`go-sso-linux-amd64.tar.gz\`"
+            echo "- \`go-sso-linux-amd64.tar.gz.sha256\`"
+          } > dist/release-notes.md
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.ref_name }}"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --title "$tag" \
+              --notes-file dist/release-notes.md
+
+            gh release upload "$tag" \
+              dist/go-sso-linux-amd64.tar.gz \
+              dist/go-sso-linux-amd64.tar.gz.sha256 \
+              --clobber
+          else
+            gh release create "$tag" \
+              dist/go-sso-linux-amd64.tar.gz \
+              dist/go-sso-linux-amd64.tar.gz.sha256 \
+              --title "$tag" \
+              --notes-file dist/release-notes.md
+          fi
