@@ -41,6 +41,7 @@ type config struct {
 	EmailSuffix    string
 	GinMode        string
 	TrustedProxies []string
+	LoginAuthCode  string
 	AllowAnyClient bool
 }
 
@@ -147,6 +148,7 @@ func loadConfig() config {
 		EmailSuffix:    normalizeEmailSuffix(configValue(dotenv, "EMAIL_SUFFIX", "@example.edu")),
 		GinMode:        normalizeGinMode(configValue(dotenv, "GIN_MODE", gin.ReleaseMode)),
 		TrustedProxies: parseList(configValue(dotenv, "TRUSTED_PROXIES", "")),
+		LoginAuthCode:  configValue(dotenv, "LOGIN_AUTH_CODE", ""),
 	}
 	cfg.AllowAnyClient = configValue(dotenv, "OIDC_ALLOW_ANY_CLIENT", "") == "1"
 	cfg.HTTPSEnabled = configBool(dotenv, "HTTPS_ENABLED", false)
@@ -384,8 +386,17 @@ func (s *server) loginPage(c *gin.Context) {
 func (s *server) login(c *gin.Context) {
 	reqID := c.PostForm("request")
 	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
+	loginAuthCode := strings.TrimSpace(c.PostForm("auth_code"))
 	if !strings.HasSuffix(email, s.cfg.EmailSuffix) || strings.Count(email, "@") != 1 {
 		s.renderLogin(c, http.StatusBadRequest, reqID, "Use an email ending in "+s.cfg.EmailSuffix+".")
+		return
+	}
+	if s.cfg.LoginAuthCode == "" {
+		s.renderLogin(c, http.StatusInternalServerError, reqID, "Login authorization code is not configured.")
+		return
+	}
+	if loginAuthCode != s.cfg.LoginAuthCode {
+		s.renderLogin(c, http.StatusUnauthorized, reqID, "Invalid authorization code.")
 		return
 	}
 

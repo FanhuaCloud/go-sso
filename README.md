@@ -101,6 +101,7 @@ OIDC_REDIRECT_URI=https://external.auth.openai.com/sso/oidc/your-connection-id/c
 OIDC_ALLOW_ANY_CLIENT=0
 OIDC_PRIVATE_KEY_FILE=private_key.pem
 EMAIL_SUFFIX=@example.edu
+LOGIN_AUTH_CODE=change-this-login-code
 HTTPS_ENABLED=0
 HTTPS_CERT_FILE=
 HTTPS_KEY_FILE=
@@ -115,6 +116,8 @@ HTTPS_KEY_FILE=
 ```dotenv
 TRUSTED_PROXIES=127.0.0.1,::1
 ```
+
+`LOGIN_AUTH_CODE` 是登录页要求输入的固定授权码。生产环境必须改成强随机值，留空会拒绝登录。
 
 ## HTTPS
 
@@ -166,7 +169,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
 ## 登录规则
 
-用户访问 SSO 登录页后，只需要输入邮箱。服务只接受 `EMAIL_SUFFIX` 配置的邮箱后缀，默认是：
+用户访问 SSO 登录页后，需要输入邮箱和授权码。服务只接受 `EMAIL_SUFFIX` 配置的邮箱后缀，默认是：
 
 ```text
 *@example.edu
