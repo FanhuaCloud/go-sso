@@ -8,21 +8,15 @@
     body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f5f7fb;color:#172033}
     main{max-width:760px;margin:8vh auto;padding:0 24px}
     section{background:white;border:1px solid #dce3ee;border-radius:8px;padding:24px}
-    code{background:#eef2f7;padding:2px 6px;border-radius:5px}
-    dl{display:grid;grid-template-columns:150px 1fr;gap:12px;word-break:break-all}
+    .status{display:inline-flex;align-items:center;gap:8px;color:#12753a;font-weight:700}
+    .dot{width:10px;height:10px;border-radius:50%;background:#1f9d55}
   </style>
 </head>
 <body>
   <main>
     <section>
       <h1>Minimal OIDC SSO</h1>
-      <p>把下面信息填到 OpenAI SSO 的 OIDC 配置里。用户登录时只允许 <code>{{.EmailSuffix}}</code> 后缀邮箱。</p>
-      <dl>
-        <dt>Discovery</dt><dd><code>{{.Issuer}}/.well-known/openid-configuration</code></dd>
-        <dt>Client ID</dt><dd><code>{{.ClientID}}</code></dd>
-        <dt>Client Secret</dt><dd><code>{{.ClientSecret}}</code></dd>
-        <dt>Redirect URI</dt><dd><code>{{.RedirectURI}}</code></dd>
-      </dl>
+      <p class="status"><span class="dot"></span>Service is running</p>
     </section>
   </main>
 </body>

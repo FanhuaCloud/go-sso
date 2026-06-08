@@ -84,11 +84,6 @@ type userToken struct {
 }
 
 type homeView struct {
-	Issuer       string
-	ClientID     string
-	ClientSecret string
-	RedirectURI  string
-	EmailSuffix  string
 }
 
 type loginView struct {
@@ -511,13 +506,7 @@ func (s *server) userinfo(c *gin.Context) {
 }
 
 func (s *server) home(c *gin.Context) {
-	s.renderHTML(c, http.StatusOK, "home.html", homeView{
-		Issuer:       s.issuer(c),
-		ClientID:     s.cfg.ClientID,
-		ClientSecret: s.cfg.ClientSecret,
-		RedirectURI:  s.cfg.RedirectURI,
-		EmailSuffix:  s.cfg.EmailSuffix,
-	})
+	s.renderHTML(c, http.StatusOK, "home.html", homeView{})
 }
 
 func (s *server) validClient(clientID, clientSecret string) bool {
