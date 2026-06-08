@@ -1,0 +1,31 @@
+# Binaries and build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+build/
+
+# Go test and coverage artifacts
+*.test
+*.out
+coverage.*
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.csr
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*.tmp
+.DS_Store
+Thumbs.db

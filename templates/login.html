@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSO Login</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7fb;color:#172033}
+    form{width:min(420px,calc(100vw - 32px));background:white;border:1px solid #dce3ee;border-radius:8px;padding:24px;box-sizing:border-box}
+    label{display:block;font-weight:650;margin:0 0 8px}
+    input{width:100%;box-sizing:border-box;border:1px solid #b9c5d6;border-radius:6px;padding:12px;font-size:16px}
+    button{width:100%;margin-top:16px;border:0;border-radius:6px;padding:12px 16px;font-size:16px;font-weight:700;background:#185abc;color:white;cursor:pointer}
+    .hint{color:#556273;font-size:14px;margin:8px 0 0}
+    .error{background:#fff1f0;border:1px solid #ffccc7;color:#a8071a;border-radius:6px;padding:10px;margin-bottom:14px}
+  </style>
+</head>
+<body>
+  <form method="post" action="/login">
+    <h1>ChatGPT SSO</h1>
+    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+    <input type="hidden" name="request" value="{{.RequestID}}">
+    <label for="email">邮箱地址</label>
+    <input id="email" name="email" type="email" autocomplete="email" placeholder="name{{.EmailSuffix}}" required autofocus>
+    <p class="hint">仅允许 {{.EmailSuffix}} 后缀。</p>
+    <button type="submit">登录</button>
+  </form>
+</body>
+</html>
