@@ -4,6 +4,17 @@
 
 > 注意：`note.txt` 写的是 OIDC，不是 SAML。本项目实现的是 authorization code flow + ID token。
 
+## 项目结构
+
+```text
+main.go                  # 程序入口，只负责加载配置、初始化密钥、装配 HTTP 服务
+internal/config/         # .env / 环境变量读取和配置校验
+internal/oidc/           # RSA 密钥、JWT 签名、JWK、OIDC claims 和 token 工具
+internal/server/         # Gin 路由、OIDC handlers、登录状态和模板渲染
+internal/server/templates/ # 嵌入到二进制里的 HTML 模板
+scripts/                 # 构建脚本
+```
+
 ## 运行
 
 ```powershell
@@ -56,8 +67,8 @@ cp .env.example .env
 HTML 已拆到模板文件，并通过 Go `embed` 打包进二进制：
 
 ```text
-templates/home.html
-templates/login.html
+internal/server/templates/home.html
+internal/server/templates/login.html
 ```
 
 修改模板后需要重新构建或重新运行 `go run .`，新的 HTML 才会进入二进制。
