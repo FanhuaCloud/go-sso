@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux-amd64:
+    name: Test and build Linux amd64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Check formatting
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "These Go files need gofmt:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build Linux amd64
+        run: |
+          mkdir -p dist/go-sso-linux-amd64
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/go-sso-linux-amd64/go-sso-linux-amd64 .
+          cp .env.example dist/go-sso-linux-amd64/.env.example
+
+      - name: Package Linux amd64
+        run: tar -czf dist/go-sso-linux-amd64.tar.gz -C dist/go-sso-linux-amd64 .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/go-sso-linux-amd64.tar.gz
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
