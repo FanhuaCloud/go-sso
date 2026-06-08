@@ -1,0 +1,14 @@
+[Unit]
+Description=Outlook Mail Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/go-sso
+ExecStart=/root/go-sso/go-sso-linux-amd64
+Restart=always
+RestartSec=10
+Environment=HOME=/root
+
+[Install]
+WantedBy=default.target

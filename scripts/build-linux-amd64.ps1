@@ -1,6 +1,6 @@
 param(
     [string]$OutputDir = "dist/go-sso-linux-amd64",
-    [string]$BinaryName = "go-sso"
+    [string]$BinaryName = "go-sso-linux-amd64"
 )
 
 $ErrorActionPreference = "Stop"

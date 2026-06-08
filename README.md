@@ -39,16 +39,16 @@ http://localhost:8080/
 默认输出：
 
 ```text
-dist/go-sso-linux-amd64/go-sso
+dist/go-sso-linux-amd64/go-sso-linux-amd64
 dist/go-sso-linux-amd64/.env.example
 ```
 
 上传 `dist/go-sso-linux-amd64` 目录到 Linux 服务器后：
 
 ```bash
-chmod +x ./go-sso
+chmod +x ./go-sso-linux-amd64
 cp .env.example .env
-./go-sso
+./go-sso-linux-amd64
 ```
 
 ## 修改页面
@@ -146,7 +146,7 @@ HTTPS_KEY_FILE=/etc/ssl/go-sso/privkey.pem
 Linux 上监听 `:443` 通常需要 root 权限，或给二进制授权：
 
 ```bash
-sudo setcap 'cap_net_bind_service=+ep' ./go-sso
+sudo setcap 'cap_net_bind_service=+ep' ./go-sso-linux-amd64
 ```
 
 ### 方式二：用 Nginx/Caddy 处理 HTTPS
