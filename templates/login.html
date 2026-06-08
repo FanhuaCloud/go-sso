@@ -12,6 +12,9 @@
     button{width:100%;margin-top:16px;border:0;border-radius:6px;padding:12px 16px;font-size:16px;font-weight:700;background:#185abc;color:white;cursor:pointer}
     .hint{color:#556273;font-size:14px;margin:8px 0 0}
     .error{background:#fff1f0;border:1px solid #ffccc7;color:#a8071a;border-radius:6px;padding:10px;margin-bottom:14px}
+    .email-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+    .email-row input{min-width:0}
+    .tool-button{width:44px;height:44px;margin:0;border:1px solid #b9c5d6;background:#f8fafc;color:#172033;border-radius:6px;padding:0;font-size:18px;line-height:1}
   </style>
 </head>
 <body>
@@ -20,11 +23,53 @@
     {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
     <input type="hidden" name="request" value="{{.RequestID}}">
     <label for="email">邮箱地址</label>
-    <input id="email" name="email" type="email" autocomplete="email" placeholder="name{{.EmailSuffix}}" required autofocus>
+    <div class="email-row">
+      <input id="email" name="email" type="email" autocomplete="email" placeholder="name{{.EmailSuffix}}" required autofocus>
+      <button class="tool-button" type="button" id="generate_email" title="随机生成邮箱" aria-label="随机生成邮箱">↻</button>
+    </div>
     <p class="hint">仅允许 {{.EmailSuffix}} 后缀。</p>
     <label for="auth_code">授权码</label>
     <input id="auth_code" name="auth_code" type="password" autocomplete="one-time-code" required>
     <button type="submit">登录</button>
   </form>
+  <script>
+    const firstNames = [
+      "james","john","robert","michael","william","david","richard","joseph",
+      "thomas","charles","mary","patricia","jennifer","linda","elizabeth",
+      "barbara","susan","jessica","sarah","karen"
+    ];
+    const lastNames = [
+      "smith","johnson","williams","brown","jones","garcia","miller","davis",
+      "rodriguez","martinez","hernandez","lopez","gonzalez","wilson","anderson",
+      "thomas","taylor","moore","jackson","martin"
+    ];
+    const suffix = "{{.EmailSuffix}}";
+
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function randomDigits(size) {
+      const bytes = new Uint8Array(size);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (value) => String(value % 10)).join("");
+    }
+
+    function uniqueNumber() {
+      const mixed = BigInt(Date.now()) * 1000000n + BigInt(Math.floor(Math.random() * 1000000));
+      const digits = (mixed.toString() + randomDigits(12)).split("");
+      for (let i = digits.length - 1; i > 0; i--) {
+        const j = crypto.getRandomValues(new Uint8Array(1))[0] % (i + 1);
+        [digits[i], digits[j]] = [digits[j], digits[i]];
+      }
+      return digits.join("").slice(0, 8);
+    }
+
+    document.getElementById("generate_email").addEventListener("click", () => {
+      const email = `${randomItem(firstNames)}${randomItem(lastNames)}${uniqueNumber()}${suffix}`;
+      document.getElementById("email").value = email;
+      document.getElementById("auth_code").focus();
+    });
+  </script>
 </body>
 </html>
