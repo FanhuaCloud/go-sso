@@ -110,6 +110,8 @@ OIDC_ISSUER=https://your-public-domain.example
 OIDC_CLIENT_ID=chatgpt
 OIDC_CLIENT_SECRET=change-this-secret
 OIDC_REDIRECT_URI=https://external.auth.openai.com/sso/oidc/your-connection-id/callback
+CHATGPT_SSO_CONNECTION_ID=
+CHATGPT_SSO_LOGIN_URL=
 OIDC_ALLOW_ANY_CLIENT=0
 OIDC_PRIVATE_KEY_FILE=private_key.pem
 EMAIL_SUFFIX=@example.edu
@@ -130,6 +132,20 @@ TRUSTED_PROXIES=127.0.0.1,::1
 ```
 
 `LOGIN_AUTH_CODE` 是登录页要求输入的固定授权码。生产环境必须改成强随机值，留空会拒绝登录。
+
+首页会在配置好 ChatGPT SSO 登录地址后显示“登录 ChatGPT”按钮。推荐配置：
+
+```dotenv
+CHATGPT_SSO_CONNECTION_ID=conn_0123abc
+```
+
+服务会生成官方 SSO Tile URL：
+
+```text
+https://chatgpt.com/auth/login?sso=true&connection=conn_0123abc
+```
+
+如果 `CHATGPT_SSO_CONNECTION_ID` 留空，服务会尝试从 `OIDC_REDIRECT_URI` 的 `/sso/oidc/{connection-id}/callback` 中自动推导。也可以用 `CHATGPT_SSO_LOGIN_URL` 直接覆盖完整跳转地址。
 
 ## HTTPS
 

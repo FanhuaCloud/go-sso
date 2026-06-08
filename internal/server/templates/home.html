@@ -10,6 +10,9 @@
     section{background:white;border:1px solid #dce3ee;border-radius:8px;padding:24px}
     .status{display:inline-flex;align-items:center;gap:8px;color:#12753a;font-weight:700}
     .dot{width:10px;height:10px;border-radius:50%;background:#1f9d55}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+    .button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;background:#185abc;color:white;text-decoration:none;font-weight:700}
+    .button:focus-visible{outline:3px solid #9cc2ff;outline-offset:2px}
   </style>
 </head>
 <body>
@@ -17,6 +20,11 @@
     <section>
       <h1>Minimal OIDC SSO</h1>
       <p class="status"><span class="dot"></span>Service is running</p>
+      {{if .ChatGPTLoginURL}}
+      <div class="actions">
+        <a class="button" href="{{.ChatGPTLoginURL}}">登录 ChatGPT</a>
+      </div>
+      {{end}}
     </section>
   </main>
 </body>

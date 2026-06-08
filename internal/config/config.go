@@ -3,35 +3,38 @@ package config
 import (
 	"errors"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 )
 
 type Config struct {
-	Addr           string
-	Issuer         string
-	ClientID       string
-	ClientSecret   string
-	RedirectURI    string
-	PrivateKeyFile string
-	HTTPSEnabled   bool
-	HTTPSCertFile  string
-	HTTPSKeyFile   string
-	EmailSuffix    string
-	GinMode        string
-	TrustedProxies []string
-	LoginAuthCode  string
-	AllowAnyClient bool
+	Addr            string
+	Issuer          string
+	ClientID        string
+	ClientSecret    string
+	RedirectURI     string
+	PrivateKeyFile  string
+	HTTPSEnabled    bool
+	HTTPSCertFile   string
+	HTTPSKeyFile    string
+	EmailSuffix     string
+	GinMode         string
+	TrustedProxies  []string
+	LoginAuthCode   string
+	AllowAnyClient  bool
+	ChatGPTLoginURL string
 }
 
 func Load(dotenvPath string) Config {
 	dotenv := LoadDotEnv(dotenvPath)
+	redirectURI := configValue(dotenv, "OIDC_REDIRECT_URI", "https://external.auth.openai.com/sso/oidc/your-connection-id/callback")
 	cfg := Config{
 		Addr:           configValue(dotenv, "ADDR", ":8080"),
 		Issuer:         strings.TrimRight(configValue(dotenv, "OIDC_ISSUER", "http://localhost:8080"), "/"),
 		ClientID:       configValue(dotenv, "OIDC_CLIENT_ID", "chatgpt"),
 		ClientSecret:   configValue(dotenv, "OIDC_CLIENT_SECRET", "dev-secret-change-me"),
-		RedirectURI:    configValue(dotenv, "OIDC_REDIRECT_URI", "https://external.auth.openai.com/sso/oidc/your-connection-id/callback"),
+		RedirectURI:    redirectURI,
 		PrivateKeyFile: configValue(dotenv, "OIDC_PRIVATE_KEY_FILE", ""),
 		HTTPSCertFile:  configValue(dotenv, "HTTPS_CERT_FILE", ""),
 		HTTPSKeyFile:   configValue(dotenv, "HTTPS_KEY_FILE", ""),
@@ -39,6 +42,11 @@ func Load(dotenvPath string) Config {
 		GinMode:        normalizeGinMode(configValue(dotenv, "GIN_MODE", "release")),
 		TrustedProxies: parseList(configValue(dotenv, "TRUSTED_PROXIES", "")),
 		LoginAuthCode:  configValue(dotenv, "LOGIN_AUTH_CODE", ""),
+		ChatGPTLoginURL: chatGPTLoginURL(
+			configValue(dotenv, "CHATGPT_SSO_LOGIN_URL", ""),
+			configValue(dotenv, "CHATGPT_SSO_CONNECTION_ID", ""),
+			redirectURI,
+		),
 	}
 	cfg.AllowAnyClient = configValue(dotenv, "OIDC_ALLOW_ANY_CLIENT", "") == "1"
 	cfg.HTTPSEnabled = configBool(dotenv, "HTTPS_ENABLED", false)
@@ -167,4 +175,32 @@ func configBool(dotenv map[string]string, name string, fallback bool) bool {
 	default:
 		return fallback
 	}
+}
+
+func chatGPTLoginURL(overrideURL, connectionID, redirectURI string) string {
+	if overrideURL = strings.TrimSpace(overrideURL); overrideURL != "" {
+		return overrideURL
+	}
+	if connectionID = strings.TrimSpace(connectionID); connectionID == "" {
+		connectionID = connectionIDFromRedirectURI(redirectURI)
+	}
+	if connectionID == "" || connectionID == "your-connection-id" {
+		return ""
+	}
+	values := url.Values{}
+	values.Set("sso", "true")
+	values.Set("connection", connectionID)
+	return "https://chatgpt.com/auth/login?" + values.Encode()
+}
+
+func connectionIDFromRedirectURI(raw string) string {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+	if len(parts) != 4 || parts[0] != "sso" || parts[1] != "oidc" || parts[3] != "callback" {
+		return ""
+	}
+	return parts[2]
 }

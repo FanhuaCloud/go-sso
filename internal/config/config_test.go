@@ -18,6 +18,7 @@ func TestLoadReadsDotEnvAndPrefersEnvironment(t *testing.T) {
 		`OIDC_CLIENT_ID=file-client`,
 		`OIDC_CLIENT_SECRET=file-secret`,
 		`OIDC_REDIRECT_URI=https://client.example/callback`,
+		`CHATGPT_SSO_CONNECTION_ID=conn_file`,
 		`OIDC_PRIVATE_KEY_FILE=private.pem`,
 		`HTTPS_CERT_FILE=cert.pem`,
 		`HTTPS_KEY_FILE=key.pem`,
@@ -57,6 +58,38 @@ func TestLoadReadsDotEnvAndPrefersEnvironment(t *testing.T) {
 	}
 	if got := strings.Join(cfg.TrustedProxies, "|"); got != "127.0.0.1|::1" {
 		t.Fatalf("TrustedProxies = %q", got)
+	}
+	if cfg.ChatGPTLoginURL != "https://chatgpt.com/auth/login?connection=conn_file&sso=true" {
+		t.Fatalf("ChatGPTLoginURL = %q", cfg.ChatGPTLoginURL)
+	}
+}
+
+func TestLoadDerivesChatGPTLoginURLFromOpenAIRedirectURI(t *testing.T) {
+	clearConfigEnv(t)
+
+	path := filepath.Join(t.TempDir(), ".env")
+	data := strings.Join([]string{
+		`OIDC_REDIRECT_URI=https://external.auth.openai.com/sso/oidc/conn_123abc/callback`,
+	}, "\n")
+	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := Load(path)
+
+	if cfg.ChatGPTLoginURL != "https://chatgpt.com/auth/login?connection=conn_123abc&sso=true" {
+		t.Fatalf("ChatGPTLoginURL = %q", cfg.ChatGPTLoginURL)
+	}
+}
+
+func TestLoadUsesExplicitChatGPTLoginURL(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("CHATGPT_SSO_LOGIN_URL", "https://chatgpt.com/auth/login?sso=true&connection=conn_override")
+
+	cfg := Load("")
+
+	if cfg.ChatGPTLoginURL != "https://chatgpt.com/auth/login?sso=true&connection=conn_override" {
+		t.Fatalf("ChatGPTLoginURL = %q", cfg.ChatGPTLoginURL)
 	}
 }
 
@@ -142,6 +175,8 @@ func clearConfigEnv(t *testing.T) {
 		"OIDC_CLIENT_ID",
 		"OIDC_CLIENT_SECRET",
 		"OIDC_REDIRECT_URI",
+		"CHATGPT_SSO_CONNECTION_ID",
+		"CHATGPT_SSO_LOGIN_URL",
 		"OIDC_PRIVATE_KEY_FILE",
 		"HTTPS_CERT_FILE",
 		"HTTPS_KEY_FILE",

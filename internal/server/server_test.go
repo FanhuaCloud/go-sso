@@ -198,6 +198,21 @@ func TestTokenRejectsInvalidClient(t *testing.T) {
 	}
 }
 
+func TestHomeRendersChatGPTLoginButton(t *testing.T) {
+	router, _ := newTestRouter(t)
+
+	res := performRequest(router, http.MethodGet, "/", nil, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("home status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `href="https://chatgpt.com/auth/login?sso=true&amp;connection=conn_test"`) {
+		t.Fatalf("home body did not include ChatGPT login link: %s", res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), "登录 ChatGPT") {
+		t.Fatalf("home body did not include button text: %s", res.Body.String())
+	}
+}
+
 func newTestRouter(t *testing.T) (*gin.Engine, *rsa.PrivateKey) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -211,14 +226,15 @@ func newTestRouter(t *testing.T) (*gin.Engine, *rsa.PrivateKey) {
 		t.Fatal(err)
 	}
 	s := New(config.Config{
-		Addr:          ":0",
-		Issuer:        "https://issuer.example",
-		ClientID:      "chatgpt",
-		ClientSecret:  "secret",
-		RedirectURI:   "https://client.example/callback",
-		EmailSuffix:   "@example.edu",
-		GinMode:       gin.TestMode,
-		LoginAuthCode: "open-sesame",
+		Addr:            ":0",
+		Issuer:          "https://issuer.example",
+		ClientID:        "chatgpt",
+		ClientSecret:    "secret",
+		RedirectURI:     "https://client.example/callback",
+		EmailSuffix:     "@example.edu",
+		GinMode:         gin.TestMode,
+		LoginAuthCode:   "open-sesame",
+		ChatGPTLoginURL: "https://chatgpt.com/auth/login?sso=true&connection=conn_test",
 	}, key, tpl)
 	router, err := s.Router()
 	if err != nil {

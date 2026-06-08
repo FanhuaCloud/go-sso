@@ -10,6 +10,7 @@ import (
 var templateFS embed.FS
 
 type homeView struct {
+	ChatGPTLoginURL string
 }
 
 type loginView struct {

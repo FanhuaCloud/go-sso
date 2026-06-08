@@ -209,7 +209,9 @@ func (s *Server) userinfo(c *gin.Context) {
 }
 
 func (s *Server) home(c *gin.Context) {
-	s.renderHTML(c, http.StatusOK, "home.html", homeView{})
+	s.renderHTML(c, http.StatusOK, "home.html", homeView{
+		ChatGPTLoginURL: s.cfg.ChatGPTLoginURL,
+	})
 }
 
 func (s *Server) validClient(clientID, clientSecret string) bool {
