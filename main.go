@@ -58,6 +58,11 @@ type server struct {
 	tpl      *template.Template
 }
 
+const (
+	authRequestTTL  = 10 * time.Minute
+	cleanupInterval = time.Minute
+)
+
 type authRequest struct {
 	ClientID    string
 	RedirectURI string
@@ -94,6 +99,9 @@ type loginView struct {
 
 func main() {
 	cfg := loadConfig()
+	if err := validateConfig(cfg); err != nil {
+		log.Fatal(err)
+	}
 	gin.SetMode(cfg.GinMode)
 	key := loadOrCreateKey(cfg.PrivateKeyFile)
 	tpl := template.Must(template.ParseFS(templateFS, "templates/*.html"))
@@ -107,6 +115,7 @@ func main() {
 		tokens:   map[string]userToken{},
 		tpl:      tpl,
 	}
+	s.startCleanup()
 
 	r := gin.Default()
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
@@ -129,6 +138,34 @@ func main() {
 	}
 }
 
+func validateConfig(cfg config) error {
+	if strings.TrimSpace(cfg.Addr) == "" {
+		return errors.New("ADDR is required")
+	}
+	if strings.TrimSpace(cfg.Issuer) == "" {
+		return errors.New("OIDC_ISSUER is required")
+	}
+	if strings.TrimSpace(cfg.ClientID) == "" {
+		return errors.New("OIDC_CLIENT_ID is required")
+	}
+	if !cfg.AllowAnyClient && strings.TrimSpace(cfg.ClientSecret) == "" {
+		return errors.New("OIDC_CLIENT_SECRET is required when OIDC_ALLOW_ANY_CLIENT=0")
+	}
+	if strings.TrimSpace(cfg.RedirectURI) == "" {
+		return errors.New("OIDC_REDIRECT_URI is required")
+	}
+	if strings.TrimSpace(cfg.LoginAuthCode) == "" {
+		return errors.New("LOGIN_AUTH_CODE is required")
+	}
+	if cfg.ClientSecret == "change-this-secret" {
+		return errors.New("OIDC_CLIENT_SECRET must be changed from the example value")
+	}
+	if cfg.LoginAuthCode == "change-this-login-code" {
+		return errors.New("LOGIN_AUTH_CODE must be changed from the example value")
+	}
+	return nil
+}
+
 func loadConfig() config {
 	dotenv := loadDotEnv(".env")
 	cfg := config{
@@ -148,6 +185,42 @@ func loadConfig() config {
 	cfg.AllowAnyClient = configValue(dotenv, "OIDC_ALLOW_ANY_CLIENT", "") == "1"
 	cfg.HTTPSEnabled = configBool(dotenv, "HTTPS_ENABLED", false)
 	return cfg
+}
+
+func (s *server) startCleanup() {
+	go func() {
+		ticker := time.NewTicker(cleanupInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			s.cleanupExpired(time.Now())
+		}
+	}()
+}
+
+func (s *server) cleanupExpired(now time.Time) {
+	s.authMu.Lock()
+	for id, req := range s.authReqs {
+		if now.Sub(req.CreatedAt) > authRequestTTL {
+			delete(s.authReqs, id)
+		}
+	}
+	s.authMu.Unlock()
+
+	s.codeMu.Lock()
+	for code, authCode := range s.codes {
+		if now.After(authCode.ExpiresAt) {
+			delete(s.codes, code)
+		}
+	}
+	s.codeMu.Unlock()
+
+	s.tokenMu.Lock()
+	for token, userToken := range s.tokens {
+		if now.After(userToken.ExpiresAt) {
+			delete(s.tokens, token)
+		}
+	}
+	s.tokenMu.Unlock()
 }
 
 func parseList(value string) []string {

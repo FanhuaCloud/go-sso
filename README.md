@@ -22,7 +22,7 @@ go run .
 http://localhost:8080
 ```
 
-打开首页可以看到要填入 OpenAI SSO 配置页的信息：
+打开首页可以看到服务运行状态：
 
 ```text
 http://localhost:8080/
@@ -89,6 +89,7 @@ Copy-Item .env.example .env
 ```
 
 `.env` 默认不提交到 Git。服务启动时会读取 `.env`，同时真实环境变量优先级更高，可以覆盖文件里的值。
+复制后必须修改 `OIDC_CLIENT_SECRET` 和 `LOGIN_AUTH_CODE`，否则服务会拒绝启动。
 
 ```dotenv
 ADDR=:8080
