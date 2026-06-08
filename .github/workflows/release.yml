@@ -42,9 +42,11 @@ jobs:
         run: go test ./...
 
       - name: Build Linux amd64
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
           mkdir -p dist/go-sso-linux-amd64
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/go-sso-linux-amd64/go-sso-linux-amd64 .
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X go-sso/internal/version.Version=${VERSION}" -o dist/go-sso-linux-amd64/go-sso-linux-amd64 .
           cp .env.example dist/go-sso-linux-amd64/.env.example
 
       - name: Package Linux amd64

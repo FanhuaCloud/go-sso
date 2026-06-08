@@ -11,12 +11,14 @@ var templateFS embed.FS
 
 type homeView struct {
 	ChatGPTLoginURL string
+	Version         string
 }
 
 type loginView struct {
 	RequestID   string
 	Error       string
 	EmailSuffix string
+	Version     string
 }
 
 func DefaultTemplates() (*template.Template, error) {
@@ -28,6 +30,7 @@ func (s *Server) renderLogin(c statusWriter, status int, reqID, errMsg string) {
 		RequestID:   reqID,
 		Error:       errMsg,
 		EmailSuffix: s.cfg.EmailSuffix,
+		Version:     s.version,
 	})
 }
 

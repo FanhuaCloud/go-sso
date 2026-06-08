@@ -1,6 +1,7 @@
 param(
     [string]$OutputDir = "dist/go-sso-linux-amd64",
-    [string]$BinaryName = "go-sso-linux-amd64"
+    [string]$BinaryName = "go-sso-linux-amd64",
+    [string]$Version = "dev"
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,7 +18,7 @@ try {
     $env:GOARCH = "amd64"
     $env:CGO_ENABLED = "0"
 
-    go build -trimpath -ldflags "-s -w" -o $binaryPath .
+    go build -trimpath -ldflags "-s -w -X go-sso/internal/version.Version=$Version" -o $binaryPath .
 
     Copy-Item -Force ".env.example" (Join-Path $outPath ".env.example")
 

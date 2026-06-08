@@ -13,6 +13,7 @@
     .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
     .button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;background:#185abc;color:white;text-decoration:none;font-weight:700}
     .button:focus-visible{outline:3px solid #9cc2ff;outline-offset:2px}
+    .version{margin:16px 0 0;color:#6b7788;font-size:13px;text-align:center}
   </style>
 </head>
 <body>
@@ -26,6 +27,7 @@
       </div>
       {{end}}
     </section>
+    <p class="version">go-sso {{.Version}}</p>
   </main>
 </body>
 </html>

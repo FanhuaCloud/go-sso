@@ -211,6 +211,7 @@ func (s *Server) userinfo(c *gin.Context) {
 func (s *Server) home(c *gin.Context) {
 	s.renderHTML(c, http.StatusOK, "home.html", homeView{
 		ChatGPTLoginURL: s.cfg.ChatGPTLoginURL,
+		Version:         s.version,
 	})
 }
 

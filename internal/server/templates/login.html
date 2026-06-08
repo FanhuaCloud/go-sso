@@ -6,7 +6,8 @@
   <title>SSO Login</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7fb;color:#172033}
-    form{width:min(420px,calc(100vw - 32px));background:white;border:1px solid #dce3ee;border-radius:8px;padding:24px;box-sizing:border-box}
+    main{width:min(420px,calc(100vw - 32px))}
+    form{width:100%;background:white;border:1px solid #dce3ee;border-radius:8px;padding:24px;box-sizing:border-box}
     label{display:block;font-weight:650;margin:0 0 8px}
     input{width:100%;box-sizing:border-box;border:1px solid #b9c5d6;border-radius:6px;padding:12px;font-size:16px}
     button{width:100%;margin-top:16px;border:0;border-radius:6px;padding:12px 16px;font-size:16px;font-weight:700;background:#185abc;color:white;cursor:pointer}
@@ -15,23 +16,27 @@
     .email-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
     .email-row input{min-width:0}
     .tool-button{width:44px;height:44px;margin:0;border:1px solid #b9c5d6;background:#f8fafc;color:#172033;border-radius:6px;padding:0;font-size:18px;line-height:1}
+    .version{margin:16px 0 0;color:#6b7788;font-size:13px;text-align:center}
   </style>
 </head>
 <body>
-  <form method="post" action="/login">
-    <h1>ChatGPT SSO</h1>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    <input type="hidden" name="request" value="{{.RequestID}}">
-    <label for="email">邮箱地址</label>
-    <div class="email-row">
-      <input id="email" name="email" type="email" autocomplete="email" placeholder="name{{.EmailSuffix}}" required autofocus>
-      <button class="tool-button" type="button" id="generate_email" title="随机生成邮箱" aria-label="随机生成邮箱">↻</button>
-    </div>
-    <p class="hint">仅允许 {{.EmailSuffix}} 后缀。</p>
-    <label for="auth_code">授权码</label>
-    <input id="auth_code" name="auth_code" type="password" autocomplete="one-time-code" required>
-    <button type="submit">登录</button>
-  </form>
+  <main>
+    <form method="post" action="/login">
+      <h1>ChatGPT SSO</h1>
+      {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+      <input type="hidden" name="request" value="{{.RequestID}}">
+      <label for="email">邮箱地址</label>
+      <div class="email-row">
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="name{{.EmailSuffix}}" required autofocus>
+        <button class="tool-button" type="button" id="generate_email" title="随机生成邮箱" aria-label="随机生成邮箱">↻</button>
+      </div>
+      <p class="hint">仅允许 {{.EmailSuffix}} 后缀。</p>
+      <label for="auth_code">授权码</label>
+      <input id="auth_code" name="auth_code" type="password" autocomplete="one-time-code" required>
+      <button type="submit">登录</button>
+    </form>
+    <p class="version">go-sso {{.Version}}</p>
+  </main>
   <script>
     const firstNames = [
       "james","john","robert","michael","william","david","richard","joseph",

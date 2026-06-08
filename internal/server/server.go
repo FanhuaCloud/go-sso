@@ -11,6 +11,7 @@ import (
 
 	"go-sso/internal/config"
 	"go-sso/internal/oidc"
+	"go-sso/internal/version"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +31,7 @@ type Server struct {
 	tokenMu  sync.Mutex
 	tokens   map[string]userToken
 	tpl      *template.Template
+	version  string
 }
 
 type authRequest struct {
@@ -65,6 +67,7 @@ func New(cfg config.Config, key *rsa.PrivateKey, tpl *template.Template) *Server
 		codes:    map[string]authCode{},
 		tokens:   map[string]userToken{},
 		tpl:      tpl,
+		version:  version.Current(),
 	}
 }
 

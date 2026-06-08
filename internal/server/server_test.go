@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"go-sso/internal/config"
+	"go-sso/internal/version"
 
 	"github.com/gin-gonic/gin"
 )
@@ -210,6 +211,22 @@ func TestHomeRendersChatGPTLoginButton(t *testing.T) {
 	}
 	if !strings.Contains(res.Body.String(), "登录 ChatGPT") {
 		t.Fatalf("home body did not include button text: %s", res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), "go-sso "+version.Current()) {
+		t.Fatalf("home body did not include version: %s", res.Body.String())
+	}
+}
+
+func TestLoginPageRendersVersion(t *testing.T) {
+	router, _ := newTestRouter(t)
+	requestID := startLoginRequest(t, router)
+
+	res := performRequest(router, http.MethodGet, "/login?request="+url.QueryEscape(requestID), nil, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("login page status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), "go-sso "+version.Current()) {
+		t.Fatalf("login body did not include version: %s", res.Body.String())
 	}
 }
 
