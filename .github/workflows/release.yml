@@ -111,10 +111,20 @@ jobs:
               --clobber
           else
             gh release create "$tag" \
+              --verify-tag \
+              --title "$tag" \
+              --notes-file dist/release-notes.md
+
+            gh release upload "$tag" \
               dist/go-sso-linux-amd64.tar.gz \
               dist/go-sso-linux-amd64.tar.gz.sha256 \
               dist/go-sso-linux-arm64.tar.gz \
               dist/go-sso-linux-arm64.tar.gz.sha256 \
-              --title "$tag" \
-              --notes-file dist/release-notes.md
+              --clobber
+          fi
+
+          release_tag="$(gh release view "$tag" --json tagName --jq '.tagName')"
+          if [ "$release_tag" != "$tag" ]; then
+            echo "Release is attached to '$release_tag', expected '$tag'."
+            exit 1
           fi
