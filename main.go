@@ -39,6 +39,8 @@ type config struct {
 	HTTPSCertFile  string
 	HTTPSKeyFile   string
 	EmailSuffix    string
+	GinMode        string
+	TrustedProxies []string
 	AllowAnyClient bool
 }
 
@@ -96,6 +98,7 @@ type loginView struct {
 
 func main() {
 	cfg := loadConfig()
+	gin.SetMode(cfg.GinMode)
 	key := loadOrCreateKey(cfg.PrivateKeyFile)
 	tpl := template.Must(template.ParseFS(templateFS, "templates/*.html"))
 
@@ -110,6 +113,9 @@ func main() {
 	}
 
 	r := gin.Default()
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		log.Fatalf("invalid TRUSTED_PROXIES: %v", err)
+	}
 	r.GET("/", s.home)
 	r.GET("/login", s.loginPage)
 	r.POST("/login", s.login)
@@ -139,10 +145,34 @@ func loadConfig() config {
 		HTTPSCertFile:  configValue(dotenv, "HTTPS_CERT_FILE", ""),
 		HTTPSKeyFile:   configValue(dotenv, "HTTPS_KEY_FILE", ""),
 		EmailSuffix:    normalizeEmailSuffix(configValue(dotenv, "EMAIL_SUFFIX", "@example.edu")),
+		GinMode:        normalizeGinMode(configValue(dotenv, "GIN_MODE", gin.ReleaseMode)),
+		TrustedProxies: parseList(configValue(dotenv, "TRUSTED_PROXIES", "")),
 	}
 	cfg.AllowAnyClient = configValue(dotenv, "OIDC_ALLOW_ANY_CLIENT", "") == "1"
 	cfg.HTTPSEnabled = configBool(dotenv, "HTTPS_ENABLED", false)
 	return cfg
+}
+
+func parseList(value string) []string {
+	var values []string
+	for _, item := range strings.Split(value, ",") {
+		item = strings.TrimSpace(item)
+		if item != "" {
+			values = append(values, item)
+		}
+	}
+	return values
+}
+
+func normalizeGinMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case gin.DebugMode:
+		return gin.DebugMode
+	case gin.TestMode:
+		return gin.TestMode
+	default:
+		return gin.ReleaseMode
+	}
 }
 
 func normalizeEmailSuffix(suffix string) string {

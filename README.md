@@ -92,6 +92,8 @@ Copy-Item .env.example .env
 
 ```dotenv
 ADDR=:8080
+GIN_MODE=release
+TRUSTED_PROXIES=
 OIDC_ISSUER=https://your-public-domain.example
 OIDC_CLIENT_ID=chatgpt
 OIDC_CLIENT_SECRET=change-this-secret
@@ -105,6 +107,14 @@ HTTPS_KEY_FILE=
 ```
 
 如果不设置 `OIDC_PRIVATE_KEY_FILE`，服务每次启动会生成临时 RSA 签名密钥。正式使用建议固定私钥，否则重启后 JWKS 会变化。
+
+`GIN_MODE=release` 会关闭 Gin 的 debug mode；本地调试时可以改成 `debug`。
+
+`TRUSTED_PROXIES` 默认留空，表示不信任任何反向代理，避免 Gin 的 trust all proxies 警告。如果用本机 Nginx/Caddy 反代，可以配置：
+
+```dotenv
+TRUSTED_PROXIES=127.0.0.1,::1
+```
 
 ## HTTPS
 
@@ -143,6 +153,7 @@ sudo setcap 'cap_net_bind_service=+ep' ./go-sso
 ADDR=127.0.0.1:8080
 OIDC_ISSUER=https://your-public-domain.example
 HTTPS_ENABLED=0
+TRUSTED_PROXIES=127.0.0.1,::1
 ```
 
 反代需要传递这些头：
