@@ -1,5 +1,5 @@
 [Unit]
-Description=Outlook Mail Service
+Description=Go SSO OIDC Server
 After=network.target
 
 [Service]

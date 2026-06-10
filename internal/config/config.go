@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -82,31 +84,15 @@ func Validate(cfg Config) error {
 }
 
 func LoadDotEnv(path string) map[string]string {
-	values := map[string]string{}
-	data, err := os.ReadFile(path)
+	if strings.TrimSpace(path) == "" {
+		return map[string]string{}
+	}
+	values, err := godotenv.Read(path)
 	if err != nil {
-		if path != "" && !errors.Is(err, os.ErrNotExist) {
+		if !errors.Is(err, os.ErrNotExist) {
 			log.Printf("could not read %s: %v", path, err)
 		}
-		return values
-	}
-
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			log.Printf("ignoring invalid .env line: %s", line)
-			continue
-		}
-		key = strings.TrimSpace(key)
-		value = strings.TrimSpace(value)
-		if key == "" {
-			continue
-		}
-		values[key] = unquoteDotEnvValue(value)
+		return map[string]string{}
 	}
 	return values
 }
@@ -142,17 +128,6 @@ func normalizeEmailSuffix(suffix string) string {
 		return "@" + suffix
 	}
 	return suffix
-}
-
-func unquoteDotEnvValue(value string) string {
-	if len(value) < 2 {
-		return value
-	}
-	if (strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`)) ||
-		(strings.HasPrefix(value, `'`) && strings.HasSuffix(value, `'`)) {
-		return value[1 : len(value)-1]
-	}
-	return value
 }
 
 func configValue(dotenv map[string]string, name, fallback string) string {

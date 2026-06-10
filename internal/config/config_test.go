@@ -93,6 +93,28 @@ func TestLoadUsesExplicitChatGPTLoginURL(t *testing.T) {
 	}
 }
 
+func TestLoadUsesDefaultsWhenDotEnvIsMissing(t *testing.T) {
+	clearConfigEnv(t)
+
+	cfg := Load(filepath.Join(t.TempDir(), ".env"))
+
+	if cfg.Addr != ":8080" {
+		t.Fatalf("Addr = %q", cfg.Addr)
+	}
+	if cfg.Issuer != "http://localhost:8080" {
+		t.Fatalf("Issuer = %q", cfg.Issuer)
+	}
+	if cfg.ClientID != "chatgpt" {
+		t.Fatalf("ClientID = %q", cfg.ClientID)
+	}
+	if cfg.EmailSuffix != "@example.edu" {
+		t.Fatalf("EmailSuffix = %q", cfg.EmailSuffix)
+	}
+	if cfg.HTTPSEnabled {
+		t.Fatal("HTTPSEnabled = true")
+	}
+}
+
 func TestValidateAcceptsCompleteConfig(t *testing.T) {
 	cfg := validConfig()
 	if err := Validate(cfg); err != nil {

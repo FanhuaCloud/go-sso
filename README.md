@@ -1,8 +1,6 @@
 # Minimal OIDC SSO Server
 
-这是一个最小可用的 Gin + Go OIDC Provider，用来对接 `note.txt` 里的 OpenAI SSO OIDC 配置。
-
-> 注意：`note.txt` 写的是 OIDC，不是 SAML。本项目实现的是 authorization code flow + ID token。
+这是一个最小可用的 Gin + Go OIDC Provider
 
 ## 项目结构
 
