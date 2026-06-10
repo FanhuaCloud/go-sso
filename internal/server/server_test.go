@@ -182,6 +182,32 @@ func TestLoginRejectsInvalidEmailSuffix(t *testing.T) {
 	}
 }
 
+func TestLoginRateLimitsInvalidAuthCodeByIP(t *testing.T) {
+	router, _ := newTestRouter(t)
+	requestID := startLoginRequest(t, router)
+
+	form := url.Values{
+		"request":   {requestID},
+		"email":     {"person@example.edu"},
+		"auth_code": {"wrong-code"},
+	}
+	for i := 0; i < loginAuthCodeMaxFailures; i++ {
+		res := performForm(router, "/login", form, "", "")
+		if res.Code != http.StatusUnauthorized {
+			t.Fatalf("login attempt %d status = %d, body = %s", i+1, res.Code, res.Body.String())
+		}
+	}
+
+	form.Set("auth_code", "open-sesame")
+	res := performForm(router, "/login", form, "", "")
+	if res.Code != http.StatusTooManyRequests {
+		t.Fatalf("blocked login status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), "Too many invalid authorization code attempts.") {
+		t.Fatalf("blocked login body did not include rate limit error: %s", res.Body.String())
+	}
+}
+
 func TestTokenRejectsInvalidClient(t *testing.T) {
 	router, _ := newTestRouter(t)
 	form := url.Values{

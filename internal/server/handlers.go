@@ -85,6 +85,7 @@ func (s *Server) login(c *gin.Context) {
 	reqID := c.PostForm("request")
 	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
 	loginAuthCode := strings.TrimSpace(c.PostForm("auth_code"))
+	clientIP := c.ClientIP()
 	if !strings.HasSuffix(email, s.cfg.EmailSuffix) || strings.Count(email, "@") != 1 {
 		s.renderLogin(c, http.StatusBadRequest, reqID, "Use an email ending in "+s.cfg.EmailSuffix+".")
 		return
@@ -93,10 +94,16 @@ func (s *Server) login(c *gin.Context) {
 		s.renderLogin(c, http.StatusInternalServerError, reqID, "Login authorization code is not configured.")
 		return
 	}
+	if s.loginAuthCodeBlocked(clientIP, time.Now()) {
+		s.renderLogin(c, http.StatusTooManyRequests, reqID, "Too many invalid authorization code attempts. Please try again later.")
+		return
+	}
 	if loginAuthCode != s.cfg.LoginAuthCode {
+		s.recordLoginAuthCodeFailure(clientIP, time.Now())
 		s.renderLogin(c, http.StatusUnauthorized, reqID, "Invalid authorization code.")
 		return
 	}
+	s.clearLoginAuthCodeFailures(clientIP)
 
 	s.authMu.Lock()
 	req, ok := s.authReqs[reqID]
@@ -227,6 +234,44 @@ func (s *Server) validRedirectURI(raw string) bool {
 		return raw != ""
 	}
 	return raw == s.cfg.RedirectURI
+}
+
+func (s *Server) loginAuthCodeBlocked(ip string, now time.Time) bool {
+	s.loginMu.Lock()
+	defer s.loginMu.Unlock()
+
+	attempt, ok := s.logins[ip]
+	if !ok {
+		return false
+	}
+	if now.Before(attempt.BlockedUntil) {
+		return true
+	}
+	if now.Sub(attempt.FirstFailed) > loginAuthCodeFailureWindow {
+		delete(s.logins, ip)
+	}
+	return false
+}
+
+func (s *Server) recordLoginAuthCodeFailure(ip string, now time.Time) {
+	s.loginMu.Lock()
+	defer s.loginMu.Unlock()
+
+	attempt := s.logins[ip]
+	if attempt.FirstFailed.IsZero() || now.Sub(attempt.FirstFailed) > loginAuthCodeFailureWindow {
+		attempt = loginAttempt{FirstFailed: now}
+	}
+	attempt.Failures++
+	if attempt.Failures >= loginAuthCodeMaxFailures {
+		attempt.BlockedUntil = now.Add(loginAuthCodeBlockDuration)
+	}
+	s.logins[ip] = attempt
+}
+
+func (s *Server) clearLoginAuthCodeFailures(ip string) {
+	s.loginMu.Lock()
+	delete(s.logins, ip)
+	s.loginMu.Unlock()
 }
 
 func (s *Server) claims(c *gin.Context, email, aud, nonce string, now time.Time) map[string]any {

@@ -17,8 +17,11 @@ import (
 )
 
 const (
-	authRequestTTL  = 10 * time.Minute
-	cleanupInterval = time.Minute
+	authRequestTTL             = 10 * time.Minute
+	cleanupInterval            = time.Minute
+	loginAuthCodeMaxFailures   = 5
+	loginAuthCodeFailureWindow = 10 * time.Minute
+	loginAuthCodeBlockDuration = 15 * time.Minute
 )
 
 type Server struct {
@@ -30,6 +33,8 @@ type Server struct {
 	codes    map[string]authCode
 	tokenMu  sync.Mutex
 	tokens   map[string]userToken
+	loginMu  sync.Mutex
+	logins   map[string]loginAttempt
 	tpl      *template.Template
 	version  string
 }
@@ -59,6 +64,12 @@ type userToken struct {
 	ExpiresAt time.Time
 }
 
+type loginAttempt struct {
+	Failures     int
+	FirstFailed  time.Time
+	BlockedUntil time.Time
+}
+
 func New(cfg config.Config, key *rsa.PrivateKey, tpl *template.Template) *Server {
 	return &Server{
 		cfg:      cfg,
@@ -66,6 +77,7 @@ func New(cfg config.Config, key *rsa.PrivateKey, tpl *template.Template) *Server
 		authReqs: map[string]authRequest{},
 		codes:    map[string]authCode{},
 		tokens:   map[string]userToken{},
+		logins:   map[string]loginAttempt{},
 		tpl:      tpl,
 		version:  version.Current(),
 	}
@@ -122,6 +134,14 @@ func (s *Server) cleanupExpired(now time.Time) {
 		}
 	}
 	s.tokenMu.Unlock()
+
+	s.loginMu.Lock()
+	for ip, attempt := range s.logins {
+		if now.After(attempt.BlockedUntil) && now.Sub(attempt.FirstFailed) > loginAuthCodeFailureWindow {
+			delete(s.logins, ip)
+		}
+	}
+	s.loginMu.Unlock()
 }
 
 func Run(r *gin.Engine, cfg config.Config) error {
