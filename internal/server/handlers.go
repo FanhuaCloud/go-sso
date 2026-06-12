@@ -83,11 +83,11 @@ func (s *Server) loginPage(c *gin.Context) {
 
 func (s *Server) login(c *gin.Context) {
 	reqID := c.PostForm("request")
-	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
+	email := postedEmail(c)
 	loginAuthCode := strings.TrimSpace(c.PostForm("auth_code"))
 	clientIP := c.ClientIP()
-	if !strings.HasSuffix(email, s.cfg.EmailSuffix) || strings.Count(email, "@") != 1 {
-		s.renderLogin(c, http.StatusBadRequest, reqID, "Use an email ending in "+s.cfg.EmailSuffix+".")
+	if !s.validEmailSuffix(email) || strings.Count(email, "@") != 1 {
+		s.renderLogin(c, http.StatusBadRequest, reqID, "Use an email ending in "+s.emailSuffixList()+".")
 		return
 	}
 	if s.cfg.LoginAuthCode == "" {
@@ -136,6 +136,16 @@ func (s *Server) login(c *gin.Context) {
 	}
 	redirect.RawQuery = q.Encode()
 	c.Redirect(http.StatusFound, redirect.String())
+}
+
+func postedEmail(c *gin.Context) string {
+	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
+	if email != "" {
+		return email
+	}
+	local := strings.ToLower(strings.TrimSpace(c.PostForm("email_local")))
+	suffix := strings.ToLower(strings.TrimSpace(c.PostForm("email_suffix")))
+	return local + suffix
 }
 
 func (s *Server) token(c *gin.Context) {
@@ -280,9 +290,26 @@ func (s *Server) claims(c *gin.Context, email, aud, nonce string, now time.Time)
 		Email:       email,
 		Audience:    aud,
 		Nonce:       nonce,
-		EmailSuffix: s.cfg.EmailSuffix,
+		EmailSuffix: emailSuffixForEmail(email, s.cfg.EmailSuffixes),
 		Now:         now,
 	})
+}
+
+func (s *Server) validEmailSuffix(email string) bool {
+	return emailSuffixForEmail(email, s.cfg.EmailSuffixes) != ""
+}
+
+func (s *Server) emailSuffixList() string {
+	return strings.Join(s.cfg.EmailSuffixes, ", ")
+}
+
+func emailSuffixForEmail(email string, suffixes []string) string {
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(email, suffix) {
+			return suffix
+		}
+	}
+	return ""
 }
 
 func (s *Server) issuer(c *gin.Context) string {

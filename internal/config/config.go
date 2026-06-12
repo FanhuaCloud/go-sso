@@ -20,7 +20,7 @@ type Config struct {
 	HTTPSEnabled    bool
 	HTTPSCertFile   string
 	HTTPSKeyFile    string
-	EmailSuffix     string
+	EmailSuffixes   []string
 	GinMode         string
 	TrustedProxies  []string
 	LoginAuthCode   string
@@ -40,7 +40,7 @@ func Load(dotenvPath string) Config {
 		PrivateKeyFile: configValue(dotenv, "OIDC_PRIVATE_KEY_FILE", ""),
 		HTTPSCertFile:  configValue(dotenv, "HTTPS_CERT_FILE", ""),
 		HTTPSKeyFile:   configValue(dotenv, "HTTPS_KEY_FILE", ""),
-		EmailSuffix:    normalizeEmailSuffix(configValue(dotenv, "EMAIL_SUFFIX", "@example.edu")),
+		EmailSuffixes:  normalizeEmailSuffixes(configValue(dotenv, "EMAIL_SUFFIX", "@example.edu")),
 		GinMode:        normalizeGinMode(configValue(dotenv, "GIN_MODE", "release")),
 		TrustedProxies: parseList(configValue(dotenv, "TRUSTED_PROXIES", "")),
 		LoginAuthCode:  configValue(dotenv, "LOGIN_AUTH_CODE", ""),
@@ -70,6 +70,9 @@ func Validate(cfg Config) error {
 	}
 	if strings.TrimSpace(cfg.RedirectURI) == "" {
 		return errors.New("OIDC_REDIRECT_URI is required")
+	}
+	if len(cfg.EmailSuffixes) == 0 {
+		return errors.New("EMAIL_SUFFIX is required")
 	}
 	if strings.TrimSpace(cfg.LoginAuthCode) == "" {
 		return errors.New("LOGIN_AUTH_CODE is required")
@@ -119,15 +122,22 @@ func normalizeGinMode(mode string) string {
 	}
 }
 
-func normalizeEmailSuffix(suffix string) string {
-	suffix = strings.ToLower(strings.TrimSpace(suffix))
-	if suffix == "" {
-		return "@example.edu"
+func normalizeEmailSuffixes(value string) []string {
+	var suffixes []string
+	for _, suffix := range strings.Split(value, ",") {
+		suffix = strings.ToLower(strings.TrimSpace(suffix))
+		if suffix == "" {
+			continue
+		}
+		if !strings.HasPrefix(suffix, "@") {
+			suffix = "@" + suffix
+		}
+		suffixes = append(suffixes, suffix)
 	}
-	if !strings.HasPrefix(suffix, "@") {
-		return "@" + suffix
+	if len(suffixes) == 0 {
+		return []string{"@example.edu"}
 	}
-	return suffix
+	return suffixes
 }
 
 func configValue(dotenv map[string]string, name, fallback string) string {

@@ -22,7 +22,7 @@ func TestLoadReadsDotEnvAndPrefersEnvironment(t *testing.T) {
 		`OIDC_PRIVATE_KEY_FILE=private.pem`,
 		`HTTPS_CERT_FILE=cert.pem`,
 		`HTTPS_KEY_FILE=key.pem`,
-		`EMAIL_SUFFIX=Example.EDU`,
+		`EMAIL_SUFFIX=Example.EDU, staff.example.edu`,
 		`GIN_MODE=TEST`,
 		`TRUSTED_PROXIES=127.0.0.1, ::1,`,
 		`LOGIN_AUTH_CODE=open-sesame`,
@@ -44,8 +44,8 @@ func TestLoadReadsDotEnvAndPrefersEnvironment(t *testing.T) {
 	if cfg.ClientID != "env-client" {
 		t.Fatalf("ClientID = %q", cfg.ClientID)
 	}
-	if cfg.EmailSuffix != "@example.edu" {
-		t.Fatalf("EmailSuffix = %q", cfg.EmailSuffix)
+	if got := strings.Join(cfg.EmailSuffixes, "|"); got != "@example.edu|@staff.example.edu" {
+		t.Fatalf("EmailSuffixes = %q", got)
 	}
 	if cfg.GinMode != "test" {
 		t.Fatalf("GinMode = %q", cfg.GinMode)
@@ -107,8 +107,8 @@ func TestLoadUsesDefaultsWhenDotEnvIsMissing(t *testing.T) {
 	if cfg.ClientID != "chatgpt" {
 		t.Fatalf("ClientID = %q", cfg.ClientID)
 	}
-	if cfg.EmailSuffix != "@example.edu" {
-		t.Fatalf("EmailSuffix = %q", cfg.EmailSuffix)
+	if got := strings.Join(cfg.EmailSuffixes, "|"); got != "@example.edu" {
+		t.Fatalf("EmailSuffixes = %q", got)
 	}
 	if cfg.HTTPSEnabled {
 		t.Fatal("HTTPSEnabled = true")
@@ -183,7 +183,7 @@ func validConfig() Config {
 		ClientID:      "chatgpt",
 		ClientSecret:  "secret",
 		RedirectURI:   "https://client.example/callback",
-		EmailSuffix:   "@example.edu",
+		EmailSuffixes: []string{"@example.edu"},
 		GinMode:       "test",
 		LoginAuthCode: "open-sesame",
 	}

@@ -232,6 +232,27 @@ func TestLoginRejectsInvalidEmailSuffix(t *testing.T) {
 	}
 }
 
+func TestLoginAcceptsAnyConfiguredEmailSuffix(t *testing.T) {
+	s, _ := newTestServer(t)
+	s.cfg.EmailSuffixes = []string{"@example.edu", "@staff.example.edu"}
+	router, err := s.Router()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestID := startLoginRequest(t, router)
+
+	form := url.Values{
+		"request":      {requestID},
+		"email_local":  {"person"},
+		"email_suffix": {"@staff.example.edu"},
+		"auth_code":    {"open-sesame"},
+	}
+	res := performForm(router, "/login", form, "", "")
+	if res.Code != http.StatusFound {
+		t.Fatalf("login status = %d, body = %s", res.Code, res.Body.String())
+	}
+}
+
 func TestLoginClearsAuthCodeFailuresAfterSuccess(t *testing.T) {
 	router, _ := newTestRouter(t)
 	requestID := startLoginRequest(t, router)
@@ -414,6 +435,30 @@ func TestLoginPageRendersVersion(t *testing.T) {
 	}
 }
 
+func TestLoginPageRendersEmailSuffixSelect(t *testing.T) {
+	s, _ := newTestServer(t)
+	s.cfg.EmailSuffixes = []string{"@example.edu", "@staff.example.edu"}
+	router, err := s.Router()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestID := startLoginRequest(t, router)
+
+	res := performRequest(router, http.MethodGet, "/login?request="+url.QueryEscape(requestID), nil, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("login page status = %d, body = %s", res.Code, res.Body.String())
+	}
+	for _, want := range []string{
+		`<select id="email_suffix" name="email_suffix"`,
+		`<option value="@example.edu">@example.edu</option>`,
+		`<option value="@staff.example.edu">@staff.example.edu</option>`,
+	} {
+		if !strings.Contains(res.Body.String(), want) {
+			t.Fatalf("login body did not include %q: %s", want, res.Body.String())
+		}
+	}
+}
+
 func newTestRouter(t *testing.T) (*gin.Engine, *rsa.PrivateKey) {
 	t.Helper()
 	s, key := newTestServer(t)
@@ -442,7 +487,7 @@ func newTestServer(t *testing.T) (*Server, *rsa.PrivateKey) {
 		ClientID:        "chatgpt",
 		ClientSecret:    "secret",
 		RedirectURI:     "https://client.example/callback",
-		EmailSuffix:     "@example.edu",
+		EmailSuffixes:   []string{"@example.edu"},
 		GinMode:         gin.TestMode,
 		LoginAuthCode:   "open-sesame",
 		ChatGPTLoginURL: "https://chatgpt.com/auth/login?sso=true&connection=conn_test",

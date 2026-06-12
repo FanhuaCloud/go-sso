@@ -112,7 +112,7 @@ CHATGPT_SSO_CONNECTION_ID=
 CHATGPT_SSO_LOGIN_URL=
 OIDC_ALLOW_ANY_CLIENT=0
 OIDC_PRIVATE_KEY_FILE=private_key.pem
-EMAIL_SUFFIX=@example.edu
+EMAIL_SUFFIX=@example.edu,@staff.example.edu
 LOGIN_AUTH_CODE=change-this-login-code
 HTTPS_ENABLED=0
 HTTPS_CERT_FILE=
@@ -195,10 +195,16 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
 ## 登录规则
 
-用户访问 SSO 登录页后，需要输入邮箱和授权码。服务只接受 `EMAIL_SUFFIX` 配置的邮箱后缀，默认是：
+用户访问 SSO 登录页后，需要输入邮箱和授权码。服务只接受 `EMAIL_SUFFIX` 配置的邮箱后缀，多个后缀用英文逗号分隔，默认是：
 
 ```text
 *@example.edu
+```
+
+例如：
+
+```dotenv
+EMAIL_SUFFIX=@example.edu,@staff.example.edu
 ```
 
 通过后会签发包含以下 claims 的 ID token：
