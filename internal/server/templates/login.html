@@ -6,16 +6,19 @@
   <title>SSO Login</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7fb;color:#172033}
-    main{width:min(420px,calc(100vw - 32px))}
+    main{width:min(560px,calc(100vw - 32px))}
     form{width:100%;background:white;border:1px solid #dce3ee;border-radius:8px;padding:24px;box-sizing:border-box}
     label{display:block;font-weight:650;margin:0 0 8px}
     input,select{width:100%;box-sizing:border-box;border:1px solid #b9c5d6;border-radius:6px;padding:12px;font-size:16px;background:white;color:#172033}
     button{width:100%;margin-top:16px;border:0;border-radius:6px;padding:12px 16px;font-size:16px;font-weight:700;background:#185abc;color:white;cursor:pointer}
     .hint{color:#556273;font-size:14px;margin:8px 0 0}
     .error{background:#fff1f0;border:1px solid #ffccc7;color:#a8071a;border-radius:6px;padding:10px;margin-bottom:14px}
-    .email-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(132px,auto) auto;gap:8px;align-items:center}
+    .email-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(168px,auto) auto;gap:8px;align-items:center}
     .email-row input,.email-row select{min-width:0}
+    .auth-code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+    .auth-code-row input{min-width:0}
     .tool-button{width:44px;height:44px;margin:0;border:1px solid #b9c5d6;background:#f8fafc;color:#172033;border-radius:6px;padding:0;font-size:18px;line-height:1}
+    .save-button{width:auto;height:44px;margin:0;border:1px solid #b9c5d6;background:#f8fafc;color:#172033;border-radius:6px;padding:0 14px;font-size:14px;font-weight:650;white-space:nowrap}
     .version{margin:16px 0 0;color:#6b7788;font-size:13px;text-align:center}
   </style>
 </head>
@@ -36,7 +39,10 @@
       </div>
       <p class="hint">仅允许 {{.EmailSuffixText}} 后缀。</p>
       <label for="auth_code">授权码</label>
-      <input id="auth_code" name="auth_code" type="password" autocomplete="one-time-code" required>
+      <div class="auth-code-row">
+        <input id="auth_code" name="auth_code" type="password" autocomplete="one-time-code" required>
+        <button class="save-button" type="button" id="save_auth_code">保存</button>
+      </div>
       <button type="submit">登录</button>
     </form>
     <p class="version">go-sso {{.Version}}</p>
@@ -56,6 +62,9 @@
     const email = document.getElementById("email");
     const emailLocal = document.getElementById("email_local");
     const emailSuffix = document.getElementById("email_suffix");
+    const authCode = document.getElementById("auth_code");
+    const saveAuthCode = document.getElementById("save_auth_code");
+    const authCodeStorageKey = "go_sso_auth_code";
 
     function randomItem(items) {
       return items[Math.floor(Math.random() * items.length)];
@@ -79,7 +88,30 @@
 
     document.getElementById("generate_email").addEventListener("click", () => {
       emailLocal.value = `${randomItem(firstNames)}${randomItem(lastNames)}${uniqueNumber()}`;
-      document.getElementById("auth_code").focus();
+      authCode.focus();
+    });
+
+    try {
+      const savedAuthCode = localStorage.getItem(authCodeStorageKey);
+      if (savedAuthCode) {
+        authCode.value = savedAuthCode;
+      }
+    } catch (err) {
+    }
+
+    saveAuthCode.addEventListener("click", () => {
+      try {
+        localStorage.setItem(authCodeStorageKey, authCode.value);
+        saveAuthCode.textContent = "已保存";
+        setTimeout(() => {
+          saveAuthCode.textContent = "保存";
+        }, 1200);
+      } catch (err) {
+        saveAuthCode.textContent = "保存失败";
+        setTimeout(() => {
+          saveAuthCode.textContent = "保存";
+        }, 1200);
+      }
     });
 
     form.addEventListener("submit", () => {

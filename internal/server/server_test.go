@@ -452,6 +452,8 @@ func TestLoginPageRendersEmailSuffixSelect(t *testing.T) {
 		`<select id="email_suffix" name="email_suffix"`,
 		`<option value="@example.edu">@example.edu</option>`,
 		`<option value="@staff.example.edu">@staff.example.edu</option>`,
+		`<button class="save-button" type="button" id="save_auth_code">保存</button>`,
+		`const authCodeStorageKey = "go_sso_auth_code";`,
 	} {
 		if !strings.Contains(res.Body.String(), want) {
 			t.Fatalf("login body did not include %q: %s", want, res.Body.String())
