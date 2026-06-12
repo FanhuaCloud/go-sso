@@ -59,13 +59,24 @@ jobs:
           cp .env.example dist/go-sso-linux-arm64/.env.example
           cp go-sso.service dist/go-sso-linux-arm64/go-sso.service
 
-      - name: Package Linux releases
+      - name: Build Windows amd64
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist/go-sso-windows-amd64
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X go-sso/internal/version.Version=${VERSION}" -o dist/go-sso-windows-amd64/go-sso-windows-amd64.exe .
+          cp .env.example dist/go-sso-windows-amd64/.env.example
+
+      - name: Package releases
         run: |
           tar -czf dist/go-sso-linux-amd64.tar.gz -C dist/go-sso-linux-amd64 .
           tar -czf dist/go-sso-linux-arm64.tar.gz -C dist/go-sso-linux-arm64 .
-          cd dist
+          cd dist/go-sso-windows-amd64
+          zip -r ../go-sso-windows-amd64.zip .
+          cd ..
           sha256sum go-sso-linux-amd64.tar.gz > go-sso-linux-amd64.tar.gz.sha256
           sha256sum go-sso-linux-arm64.tar.gz > go-sso-linux-arm64.tar.gz.sha256
+          sha256sum go-sso-windows-amd64.zip > go-sso-windows-amd64.zip.sha256
 
       - name: Generate release notes
         run: |
@@ -92,6 +103,8 @@ jobs:
             echo "- \`go-sso-linux-amd64.tar.gz.sha256\`"
             echo "- \`go-sso-linux-arm64.tar.gz\`"
             echo "- \`go-sso-linux-arm64.tar.gz.sha256\`"
+            echo "- \`go-sso-windows-amd64.zip\`"
+            echo "- \`go-sso-windows-amd64.zip.sha256\`"
           } > dist/release-notes.md
 
       - name: Create or update GitHub release
@@ -110,6 +123,8 @@ jobs:
               dist/go-sso-linux-amd64.tar.gz.sha256 \
               dist/go-sso-linux-arm64.tar.gz \
               dist/go-sso-linux-arm64.tar.gz.sha256 \
+              dist/go-sso-windows-amd64.zip \
+              dist/go-sso-windows-amd64.zip.sha256 \
               --clobber
           else
             gh release create "$tag" \
@@ -122,6 +137,8 @@ jobs:
               dist/go-sso-linux-amd64.tar.gz.sha256 \
               dist/go-sso-linux-arm64.tar.gz \
               dist/go-sso-linux-arm64.tar.gz.sha256 \
+              dist/go-sso-windows-amd64.zip \
+              dist/go-sso-windows-amd64.zip.sha256 \
               --clobber
           fi
 
