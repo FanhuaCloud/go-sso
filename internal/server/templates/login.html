@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SSO Login</title>
+  {{if .TurnstileEnabled}}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7fb;color:#172033}
     main{width:min(560px,calc(100vw - 32px))}
@@ -19,6 +20,7 @@
     .auth-code-row input{min-width:0}
     .tool-button{width:44px;height:44px;margin:0;border:1px solid #b9c5d6;background:#f8fafc;color:#172033;border-radius:6px;padding:0;font-size:18px;line-height:1}
     .save-button{width:auto;height:44px;margin:0;border:1px solid #b9c5d6;background:#f8fafc;color:#172033;border-radius:6px;padding:0 14px;font-size:14px;font-weight:650;white-space:nowrap}
+    .turnstile{margin-top:16px;min-height:65px}
     .version{margin:16px 0 0;color:#6b7788;font-size:13px;text-align:center}
   </style>
 </head>
@@ -43,6 +45,7 @@
         <input id="auth_code" name="auth_code" type="password" autocomplete="one-time-code" required>
         <button class="save-button" type="button" id="save_auth_code">保存</button>
       </div>
+      {{if .TurnstileEnabled}}<div class="turnstile"><div class="cf-turnstile" data-sitekey="{{.TurnstileSiteKey}}"></div></div>{{end}}
       <button type="submit">登录</button>
     </form>
     <p class="version">go-sso {{.Version}}</p>

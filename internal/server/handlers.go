@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+var turnstileVerifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 func (s *Server) discovery(c *gin.Context) {
 	issuer := s.issuer(c)
@@ -98,6 +101,17 @@ func (s *Server) login(c *gin.Context) {
 		s.renderLogin(c, http.StatusTooManyRequests, reqID, "Too many invalid authorization code attempts. Please try again later.")
 		return
 	}
+	if s.cfg.TurnstileEnabled {
+		ok, err := verifyTurnstile(s.cfg.TurnstileSecret, c.PostForm("cf-turnstile-response"), clientIP)
+		if err != nil {
+			s.renderLogin(c, http.StatusBadGateway, reqID, "Human verification could not be checked. Please try again.")
+			return
+		}
+		if !ok {
+			s.renderLogin(c, http.StatusUnauthorized, reqID, "Human verification failed. Please try again.")
+			return
+		}
+	}
 	if loginAuthCode != s.cfg.LoginAuthCode {
 		s.recordLoginAuthCodeFailure(clientIP, time.Now())
 		s.renderLogin(c, http.StatusUnauthorized, reqID, "Invalid authorization code.")
@@ -146,6 +160,34 @@ func postedEmail(c *gin.Context) string {
 	local := strings.ToLower(strings.TrimSpace(c.PostForm("email_local")))
 	suffix := strings.ToLower(strings.TrimSpace(c.PostForm("email_suffix")))
 	return local + suffix
+}
+
+func verifyTurnstile(secret, response, remoteIP string) (bool, error) {
+	if strings.TrimSpace(response) == "" {
+		return false, nil
+	}
+
+	values := url.Values{}
+	values.Set("secret", secret)
+	values.Set("response", response)
+	if strings.TrimSpace(remoteIP) != "" {
+		values.Set("remoteip", remoteIP)
+	}
+
+	client := http.Client{Timeout: 5 * time.Second}
+	res, err := client.PostForm(turnstileVerifyURL, values)
+	if err != nil {
+		return false, err
+	}
+	defer res.Body.Close()
+
+	var result struct {
+		Success bool `json:"success"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+		return false, err
+	}
+	return result.Success, nil
 }
 
 func (s *Server) token(c *gin.Context) {

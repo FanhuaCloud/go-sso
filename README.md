@@ -114,6 +114,9 @@ OIDC_ALLOW_ANY_CLIENT=0
 OIDC_PRIVATE_KEY_FILE=private_key.pem
 EMAIL_SUFFIX=@example.edu,@staff.example.edu
 LOGIN_AUTH_CODE=change-this-login-code
+TURNSTILE_ENABLED=0
+TURNSTILE_SITEKEY=1x00000000000000000000AA
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 HTTPS_ENABLED=0
 HTTPS_CERT_FILE=
 HTTPS_KEY_FILE=
@@ -130,6 +133,52 @@ TRUSTED_PROXIES=127.0.0.1,::1
 ```
 
 `LOGIN_AUTH_CODE` 是登录页要求输入的固定授权码。生产环境必须改成强随机值，留空会拒绝登录。
+
+`TURNSTILE_ENABLED=1` 会在登录页启用 Cloudflare Turnstile 人机验证。`TURNSTILE_SITEKEY` 用于前端页面，`TURNSTILE_SECRET_KEY` 只在后端校验时使用。示例配置使用 Cloudflare 官方测试 key，正式使用时请在 Cloudflare Dashboard 的 Turnstile 页面创建 widget 后替换为真实 key。
+
+### 申请 Cloudflare Turnstile key
+
+Cloudflare Turnstile 每个 widget 都会生成一组 key：`sitekey` 是公开标识，可以放到登录页；`secret key` 是后端校验凭据，只能放在服务端 `.env` 中。
+
+申请步骤：
+
+1. 登录 Cloudflare Dashboard：
+
+```text
+https://dash.cloudflare.com/
+```
+
+2. 进入左侧 Turnstile 页面，或者直接打开：
+
+```text
+https://dash.cloudflare.com/?to=/:account/turnstile
+```
+
+3. 点击 Add widget。
+
+4. 填写 widget 信息：
+
+```text
+Widget name: go-sso-login
+Hostname management: 填写你的 SSO 域名，例如 sso.example.com
+Widget mode: 推荐选择 Managed
+```
+
+`Hostname management` 只需要填域名，不要带 `https://`、路径或端口。公网部署时填真实域名；本地调试可以继续使用 `.env.example` 里的测试 key。
+
+5. 点击 Create 后，复制 Cloudflare 显示的 sitekey 和 secret key，写入 `.env`：
+
+```dotenv
+TURNSTILE_ENABLED=1
+TURNSTILE_SITEKEY=你的-sitekey
+TURNSTILE_SECRET_KEY=你的-secret-key
+```
+
+修改 `.env` 后需要重启服务。官方文档：
+
+```text
+https://developers.cloudflare.com/turnstile/get-started/widget-management/dashboard/
+```
 
 首页会在配置好 ChatGPT SSO 登录地址后显示“登录 ChatGPT”按钮。推荐配置：
 

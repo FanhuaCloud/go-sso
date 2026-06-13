@@ -11,39 +11,44 @@ import (
 )
 
 type Config struct {
-	Addr            string
-	Issuer          string
-	ClientID        string
-	ClientSecret    string
-	RedirectURI     string
-	PrivateKeyFile  string
-	HTTPSEnabled    bool
-	HTTPSCertFile   string
-	HTTPSKeyFile    string
-	EmailSuffixes   []string
-	GinMode         string
-	TrustedProxies  []string
-	LoginAuthCode   string
-	AllowAnyClient  bool
-	ChatGPTLoginURL string
+	Addr             string
+	Issuer           string
+	ClientID         string
+	ClientSecret     string
+	RedirectURI      string
+	PrivateKeyFile   string
+	HTTPSEnabled     bool
+	HTTPSCertFile    string
+	HTTPSKeyFile     string
+	EmailSuffixes    []string
+	GinMode          string
+	TrustedProxies   []string
+	LoginAuthCode    string
+	AllowAnyClient   bool
+	ChatGPTLoginURL  string
+	TurnstileEnabled bool
+	TurnstileSiteKey string
+	TurnstileSecret  string
 }
 
 func Load(dotenvPath string) Config {
 	dotenv := LoadDotEnv(dotenvPath)
 	redirectURI := configValue(dotenv, "OIDC_REDIRECT_URI", "https://external.auth.openai.com/sso/oidc/your-connection-id/callback")
 	cfg := Config{
-		Addr:           configValue(dotenv, "ADDR", ":8080"),
-		Issuer:         strings.TrimRight(configValue(dotenv, "OIDC_ISSUER", "http://localhost:8080"), "/"),
-		ClientID:       configValue(dotenv, "OIDC_CLIENT_ID", "chatgpt"),
-		ClientSecret:   configValue(dotenv, "OIDC_CLIENT_SECRET", "dev-secret-change-me"),
-		RedirectURI:    redirectURI,
-		PrivateKeyFile: configValue(dotenv, "OIDC_PRIVATE_KEY_FILE", ""),
-		HTTPSCertFile:  configValue(dotenv, "HTTPS_CERT_FILE", ""),
-		HTTPSKeyFile:   configValue(dotenv, "HTTPS_KEY_FILE", ""),
-		EmailSuffixes:  normalizeEmailSuffixes(configValue(dotenv, "EMAIL_SUFFIX", "@example.edu")),
-		GinMode:        normalizeGinMode(configValue(dotenv, "GIN_MODE", "release")),
-		TrustedProxies: parseList(configValue(dotenv, "TRUSTED_PROXIES", "")),
-		LoginAuthCode:  configValue(dotenv, "LOGIN_AUTH_CODE", ""),
+		Addr:             configValue(dotenv, "ADDR", ":8080"),
+		Issuer:           strings.TrimRight(configValue(dotenv, "OIDC_ISSUER", "http://localhost:8080"), "/"),
+		ClientID:         configValue(dotenv, "OIDC_CLIENT_ID", "chatgpt"),
+		ClientSecret:     configValue(dotenv, "OIDC_CLIENT_SECRET", "dev-secret-change-me"),
+		RedirectURI:      redirectURI,
+		PrivateKeyFile:   configValue(dotenv, "OIDC_PRIVATE_KEY_FILE", ""),
+		HTTPSCertFile:    configValue(dotenv, "HTTPS_CERT_FILE", ""),
+		HTTPSKeyFile:     configValue(dotenv, "HTTPS_KEY_FILE", ""),
+		EmailSuffixes:    normalizeEmailSuffixes(configValue(dotenv, "EMAIL_SUFFIX", "@example.edu")),
+		GinMode:          normalizeGinMode(configValue(dotenv, "GIN_MODE", "release")),
+		TrustedProxies:   parseList(configValue(dotenv, "TRUSTED_PROXIES", "")),
+		LoginAuthCode:    configValue(dotenv, "LOGIN_AUTH_CODE", ""),
+		TurnstileSiteKey: configValue(dotenv, "TURNSTILE_SITEKEY", ""),
+		TurnstileSecret:  configValue(dotenv, "TURNSTILE_SECRET_KEY", ""),
 		ChatGPTLoginURL: chatGPTLoginURL(
 			configValue(dotenv, "CHATGPT_SSO_LOGIN_URL", ""),
 			configValue(dotenv, "CHATGPT_SSO_CONNECTION_ID", ""),
@@ -52,6 +57,7 @@ func Load(dotenvPath string) Config {
 	}
 	cfg.AllowAnyClient = configValue(dotenv, "OIDC_ALLOW_ANY_CLIENT", "") == "1"
 	cfg.HTTPSEnabled = configBool(dotenv, "HTTPS_ENABLED", false)
+	cfg.TurnstileEnabled = configBool(dotenv, "TURNSTILE_ENABLED", false)
 	return cfg
 }
 
@@ -82,6 +88,14 @@ func Validate(cfg Config) error {
 	}
 	if cfg.LoginAuthCode == "change-this-login-code" {
 		return errors.New("LOGIN_AUTH_CODE must be changed from the example value")
+	}
+	if cfg.TurnstileEnabled {
+		if strings.TrimSpace(cfg.TurnstileSiteKey) == "" {
+			return errors.New("TURNSTILE_SITEKEY is required when TURNSTILE_ENABLED=1")
+		}
+		if strings.TrimSpace(cfg.TurnstileSecret) == "" {
+			return errors.New("TURNSTILE_SECRET_KEY is required when TURNSTILE_ENABLED=1")
+		}
 	}
 	return nil
 }

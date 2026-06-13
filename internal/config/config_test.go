@@ -28,6 +28,9 @@ func TestLoadReadsDotEnvAndPrefersEnvironment(t *testing.T) {
 		`LOGIN_AUTH_CODE=open-sesame`,
 		`OIDC_ALLOW_ANY_CLIENT=1`,
 		`HTTPS_ENABLED=yes`,
+		`TURNSTILE_ENABLED=1`,
+		`TURNSTILE_SITEKEY=site-key`,
+		`TURNSTILE_SECRET_KEY=secret-key`,
 	}, "\n")
 	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
 		t.Fatal(err)
@@ -61,6 +64,15 @@ func TestLoadReadsDotEnvAndPrefersEnvironment(t *testing.T) {
 	}
 	if cfg.ChatGPTLoginURL != "https://chatgpt.com/auth/login?connection=conn_file&sso=true" {
 		t.Fatalf("ChatGPTLoginURL = %q", cfg.ChatGPTLoginURL)
+	}
+	if !cfg.TurnstileEnabled {
+		t.Fatal("TurnstileEnabled = false")
+	}
+	if cfg.TurnstileSiteKey != "site-key" {
+		t.Fatalf("TurnstileSiteKey = %q", cfg.TurnstileSiteKey)
+	}
+	if cfg.TurnstileSecret != "secret-key" {
+		t.Fatalf("TurnstileSecret = %q", cfg.TurnstileSecret)
 	}
 }
 
@@ -162,6 +174,24 @@ func TestValidateRejectsInvalidConfig(t *testing.T) {
 			},
 			want: "must be changed",
 		},
+		{
+			name: "missing turnstile sitekey",
+			edit: func(cfg *Config) {
+				cfg.TurnstileEnabled = true
+				cfg.TurnstileSiteKey = ""
+				cfg.TurnstileSecret = "secret-key"
+			},
+			want: "TURNSTILE_SITEKEY is required",
+		},
+		{
+			name: "missing turnstile secret",
+			edit: func(cfg *Config) {
+				cfg.TurnstileEnabled = true
+				cfg.TurnstileSiteKey = "site-key"
+				cfg.TurnstileSecret = ""
+			},
+			want: "TURNSTILE_SECRET_KEY is required",
+		},
 	}
 
 	for _, tt := range tests {
@@ -208,6 +238,9 @@ func clearConfigEnv(t *testing.T) {
 		"LOGIN_AUTH_CODE",
 		"OIDC_ALLOW_ANY_CLIENT",
 		"HTTPS_ENABLED",
+		"TURNSTILE_ENABLED",
+		"TURNSTILE_SITEKEY",
+		"TURNSTILE_SECRET_KEY",
 	} {
 		t.Setenv(name, "")
 	}

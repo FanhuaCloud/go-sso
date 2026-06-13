@@ -316,6 +316,98 @@ func TestLoginRateLimitsInvalidAuthCodeByIP(t *testing.T) {
 	}
 }
 
+func TestLoginPageRendersTurnstileWhenEnabled(t *testing.T) {
+	s, _ := newTestServer(t)
+	s.cfg.TurnstileEnabled = true
+	s.cfg.TurnstileSiteKey = "site-key"
+	router, err := s.Router()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestID := startLoginRequest(t, router)
+
+	res := performRequest(router, http.MethodGet, "/login?request="+url.QueryEscape(requestID), nil, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("login page status = %d, body = %s", res.Code, res.Body.String())
+	}
+	for _, want := range []string{
+		`https://challenges.cloudflare.com/turnstile/v0/api.js`,
+		`class="cf-turnstile"`,
+		`data-sitekey="site-key"`,
+	} {
+		if !strings.Contains(res.Body.String(), want) {
+			t.Fatalf("login body did not include %q: %s", want, res.Body.String())
+		}
+	}
+}
+
+func TestLoginRejectsMissingTurnstileTokenWhenEnabled(t *testing.T) {
+	s, _ := newTestServer(t)
+	s.cfg.TurnstileEnabled = true
+	s.cfg.TurnstileSiteKey = "site-key"
+	s.cfg.TurnstileSecret = "secret-key"
+	router, err := s.Router()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestID := startLoginRequest(t, router)
+
+	form := url.Values{
+		"request":   {requestID},
+		"email":     {"person@example.edu"},
+		"auth_code": {"open-sesame"},
+	}
+	res := performForm(router, "/login", form, "", "")
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("login status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), "Human verification failed.") {
+		t.Fatalf("login body did not include turnstile error: %s", res.Body.String())
+	}
+}
+
+func TestLoginAcceptsSuccessfulTurnstileVerification(t *testing.T) {
+	verifyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.FormValue("secret") != "secret-key" {
+			t.Fatalf("secret = %q", r.FormValue("secret"))
+		}
+		if r.FormValue("response") != "turnstile-token" {
+			t.Fatalf("response = %q", r.FormValue("response"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"success":true}`))
+	}))
+	defer verifyServer.Close()
+
+	previousURL := turnstileVerifyURL
+	turnstileVerifyURL = verifyServer.URL
+	defer func() {
+		turnstileVerifyURL = previousURL
+	}()
+
+	s, _ := newTestServer(t)
+	s.cfg.TurnstileEnabled = true
+	s.cfg.TurnstileSiteKey = "site-key"
+	s.cfg.TurnstileSecret = "secret-key"
+	router, err := s.Router()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestID := startLoginRequest(t, router)
+
+	form := url.Values{
+		"request":               {requestID},
+		"email":                 {"person@example.edu"},
+		"auth_code":             {"open-sesame"},
+		"cf-turnstile-response": {"turnstile-token"},
+	}
+	res := performForm(router, "/login", form, "", "")
+	if res.Code != http.StatusFound {
+		t.Fatalf("login status = %d, body = %s", res.Code, res.Body.String())
+	}
+}
+
 func TestTokenRejectsRedirectURIMismatch(t *testing.T) {
 	router, _ := newTestRouter(t)
 	code := completeLoginAndGetCode(t, router)

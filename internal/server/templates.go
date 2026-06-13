@@ -16,11 +16,13 @@ type homeView struct {
 }
 
 type loginView struct {
-	RequestID       string
-	Error           string
-	EmailSuffixes   []string
-	EmailSuffixText string
-	Version         string
+	RequestID        string
+	Error            string
+	EmailSuffixes    []string
+	EmailSuffixText  string
+	Version          string
+	TurnstileEnabled bool
+	TurnstileSiteKey string
 }
 
 func DefaultTemplates() (*template.Template, error) {
@@ -29,11 +31,13 @@ func DefaultTemplates() (*template.Template, error) {
 
 func (s *Server) renderLogin(c statusWriter, status int, reqID, errMsg string) {
 	s.renderHTML(c, status, "login.html", loginView{
-		RequestID:       reqID,
-		Error:           errMsg,
-		EmailSuffixes:   s.cfg.EmailSuffixes,
-		EmailSuffixText: strings.Join(s.cfg.EmailSuffixes, ", "),
-		Version:         s.version,
+		RequestID:        reqID,
+		Error:            errMsg,
+		EmailSuffixes:    s.cfg.EmailSuffixes,
+		EmailSuffixText:  strings.Join(s.cfg.EmailSuffixes, ", "),
+		Version:          s.version,
+		TurnstileEnabled: s.cfg.TurnstileEnabled,
+		TurnstileSiteKey: s.cfg.TurnstileSiteKey,
 	})
 }
 
